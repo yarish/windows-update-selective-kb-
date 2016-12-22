@@ -1,5 +1,4 @@
 [windows]
-#10.120.40.27 
-#10.120.40.55
-10.120.40.79 ansible_password=@@didataGO!
-
+#10.120.40.27
+##10.120.40.55
+10.120.40.79 ansible_password=sometext
