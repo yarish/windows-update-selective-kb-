@@ -1,0 +1,28 @@
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    kblist: "{{ lookup('file', 'kblist.txt') }}"
+  tasks:
+    - include_vars: 'vars/main.yml'
+
+    - name : get the current time of target machine
+      set_fact: time="{{lookup('pipe','date +%H-%M')}}"
+    - debug: var=time
+
+    - name : get the current date of target machine
+      set_fact: date="{{lookup('pipe','date +%m-%d-%y')}}"
+    - debug: var=date
+
+    - name : construct unique task name
+      set_fact: task_name=ansible-{{date}}-time-{{time}}-task
+    - debug: var=task_name
+
+    - name : inject kblist and log location and create ps file - ./files//update-specific-kbs.ps1
+      template: src=files/update-specific-kbs-template.ps1 dest=files/update-specific-kbs.ps1
+
+    - name : generate the schedule task PS file 
+      template: src=files/schedule-task-template.ps1 dest=files/schedule-task.ps1
+    
+    - name : store task name in file 
+      shell: echo {{ task_name }} > files/task_name 

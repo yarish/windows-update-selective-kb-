@@ -1,0 +1,13 @@
+---
+- hosts: localhost
+  gather_facts: true
+  tasks:
+    - name : send gmail
+      mail:
+        host: smtp.gmail.com
+        port: 587
+        username: yarish@gmail.com
+        password: Cisco143$980044534
+        to: 'yarish <yjanakiraman@deloitte.com>'
+        subject: 'Ansible-report'
+        body: 'System {{ ansible_hostname }} has been successfully provisioned.'

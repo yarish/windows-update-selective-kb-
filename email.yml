@@ -1,0 +1,21 @@
+---
+ - hosts: windows
+   tasks:
+   #- win_copy: src=copyfiles  dest=C:/Users/Administrator/Documents/
+   #- win_shell : Get-Content '.\test.log' chdir=C:\Users\Administrator\Documents\copyfiles
+   #  register: out
+   #- local_action: copy content={{ out }} dest=/home/powershell/update.log
+
+ - hosts: localhost
+   connection: local
+   tasks:
+   - mail:
+       host: localhost
+       port: 25
+       from: varun
+       to: yarish@gmail.com
+       cc: yarish@gmail.com 
+       subject: Ansible-Report
+       body: 'Test 1 from Ansible System:{{ ansible_hostname }} is successfully sending mail. Please ignore this mail '
+       attach: /home/powershell/update.log
+       charset: utf8

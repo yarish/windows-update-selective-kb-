@@ -1,0 +1,89 @@
+---
+- hosts: windows
+  gather_facts: true
+  vars:
+    kblist: "{{ lookup('file', 'kblist.txt') }}" 
+    task_name: "{{ lookup('file', 'files/task_name') }}" 
+  tasks: 
+    - include_vars: 'vars/main.yml'
+
+    - name : create Ansible directory in target machine 
+      win_file: path={{ destination }} state=directory
+    
+    - name : copy the file update-specific-kbs.ps1 to Ansible folder
+      win_copy: src=files/update-specific-kbs.ps1 dest={{ destination }}/update-specific-kbs.ps1
+
+    - name : create empty file with task name.in-progress
+      win_copy: src=files/task_name dest={{ destination }}/{{task_name}}.in-progress
+
+    - name : create empty log file
+      win_shell: echo $null >> {{ destination }}/{{task_name}}.log
+
+    - name : display task_name
+      local_action : shell cat files/task_name
+      register: taskname
+    - debug: var=task_name
+
+    - name : schedule the task to update server , current_time of host + 2 min 
+      script : files/schedule-task.ps1
+      register: x
+    - debug: var=x.stdout
+
+    - pause: minutes={{ plus_duration }} 
+
+    - name : query the database with kb id 
+      win_shell : Get-WUHistory | Select-Object -Property KB 
+      ignore_errors: yes
+      register: result
+      until:  result.stdout.find("{{item}}")  != -1
+      retries: 80 #3
+      delay: 15   #5 
+      with_lines: cat kblist
+      #with_items: { KB3178539 , KB31841221 } 
+      
+
+    - debug: msg={{ destination }}/{{ task_name }}.log
+
+    - name : show the kb update log
+      win_shell : Get-Content("{{ destination }}/{{ task_name }}.log")
+      register: show_log
+    - debug: var=show_log
+
+    - name : send the log file as email
+      mail:
+        host: localhost
+        port: 25 
+        from: varun
+        to: yarish@gmail.com 
+        subject: "Ansible Task {{ task_name }} on machine {{ ansible_hostname }} has been completed!"
+        body: 'log file: {{show_log.stdout_lines }}'
+      delegate_to: localhost 
+
+    #- name : send email alert with log attachment
+      #win_shell : '{{ destination }}/send-mail.ps1'
+      #script: files/send-mail.ps1 chdir={{ destination }}
+      #register: email_output
+    #- debug: var=email_output
+
+    - name : remove .in-progress log file
+      win_file: path={{ destination }}/{{task_name}}.in-progress state=absent
+
+    - name : create empty file with task name.completed
+      win_copy: src=files/task_name dest={{ destination }}/{{task_name}}.completed
+
+    - name : Delete the schedule task
+      win_shell : schtasks.exe /Delete /TN "{{task_name}}" /F
+      register: delete_status
+    - debug: var=delete_status 
+
+    - name : reboot the windows machine after update 
+      win_reboot:
+        connect_timeout_sec: 5 
+        pre_reboot_delay_sec: 10 
+        shutdown_timeout_sec: 300
+        reboot_timeout_sec: 300
+        #test_command: 'whoami'
+     
+    - name : wait for system and winrm up 
+      local_action: wait_for port=5986 host={{ inventory_hostname }} delay=5 timeout=600 state=started connect_timeout=5   
+

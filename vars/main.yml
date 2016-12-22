@@ -1,0 +1,8 @@
+---
+destination : 'C:/Users/Administrator/Documents/Ansible'
+logfile : '{{ destination }}-update.log'
+plus_duration: 2 
+# plus_duration unit is minute 
+executable: '{{ destination }}/update-specific-kbs.ps1' 
+powershell : 'c:\windows\system32\WindowsPowerShell\v1.0\powershell.exe' 
+#task_name : 'PowerShell-Windows-Update'
