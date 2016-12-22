@@ -1,1 +1,2 @@
-hosts
+./hosts
+./group_vars/windows.yml
